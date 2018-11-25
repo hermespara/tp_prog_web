@@ -5,7 +5,7 @@ import jinja2
 import sqlite3
 
 
-DATABASE = "/home/hermes/Bureau/S3/Web pour la bioinfo/TP_2/ensembl_hs63_simple.sqlite"
+DATABASE = "/home/hermes/Bureau/S3/Web pour la bioinfo/TP_2/tp_prog_web/ensembl_hs63_simple.sqlite"
 
 app = Flask(__name__)
 

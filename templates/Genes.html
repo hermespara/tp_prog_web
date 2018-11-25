@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+    {% block content %}
+    <br>
+    <br>
+    <br>
+    <div class="gene_id" style="overflow: auto; max-height: 80vh">
+
+                <div class="table-responsive">
+                    <table class="table" id="genes">
+  {% if res %}
+  <tr>
+    <th scope="col"> Ensembl ID </th>
+    <th scope="col"> Associated_Gene_Name </th>
+    <th scope="col"> Modify </th>
+  </tr>
+
+
+{% for row in res %}
+<tr>
+  <td> <a href={{url_for("view", id = row[0])}}> {{row[0]}} </td>
+  <td> {{row[1]}} </td>
+  <td> <form method=post action="{{ url_for('del_id', id=row[0])}}" method="POST">
+    <input type="button" name="{{row[0]}}" value="Delete" onclick="this.form.submit();"> </form>
+  </td>
+</tr>
+{% endfor %}
+{% endif %}
+</table>
+<a href = {{url_for('root')}}>Go back to home page</a>
+{% endblock %}

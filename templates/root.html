@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="jumbotron text-center">
+  <h1>Programation Web</h1>
+  <p>Gene DataBase</p>
+</div>
+
+<center>
+<a href="{{ url_for('new') }}" class="btn btn-success btn-lg">
+          <span class="glyphicon glyphicon-plus"></span> Add new Gene
+</a>
+<a href="{{ url_for('Genes') }}" class="btn btn-primary btn-lg">
+          <span class="glyphicon glyphicon-eye-open"></span> Gene List
+</a>
+</center>
+
+<div id="about" class="container-fluid text-center">
+  <h2>About this site</h2>
+  <h4>What it allows to do</h4>
+  <br>
+  <div class="row">
+    <div class="col-sm-4">
+      <span class="glyphicon glyphicon-plus"></span>
+      <h4>Add a new Gene</h4>
+      <p>You can add a new gene to the database</p>
+    </div>
+    <div class="col-sm-4">
+      <span class="glyphicon glyphicon-remove"></span>
+      <h4>Remove a Gene</h4>
+      <p>You can delete a gene from the datatable</p>
+    </div>
+    <div class="col-sm-4">
+      <span class="glyphicon glyphicon-eye-open"></span>
+      <h4>Information about the gene</h4>
+      <p>You can select a specific gene and get more information about it</p>
+    </div>
+    </div>
+    <br><br>
+</div>
+
+ <div id="contact" class="container-fluid bg-grey">
+  <h2 class="text-center">CONTACT</h2>
+  <div class="row">
+    <div class="col-sm-5">
+      <p>If you have any suggestions or comments please Contact</p>
+      <p><span class="glyphicon glyphicon-map-marker"></span> Lyon, FR</p>
+      <p><span class="glyphicon glyphicon-phone"></span> (+33) 06 09 70 69 ..</p>
+      <p><span class="glyphicon glyphicon-envelope"></span> hermes.paraqindes@etu.univ-lyon1.fr</p>
+    </div>
+    <div class="col-sm-7">
+      <div class="row">
+        <div class="col-sm-6 form-group">
+          <input class="form-control" id="name" name="name" placeholder="Name" type="text" required>
+        </div>
+        <div class="col-sm-6 form-group">
+          <input class="form-control" id="email" name="email" placeholder="Email" type="email" required>
+        </div>
+      </div>
+      <textarea class="form-control" id="comments" name="comments" placeholder="Comment" rows="5"></textarea><br>
+      <div class="row">
+        <div class="col-sm-12 form-group">
+          <button class="btn btn-default pull-right" type="submit">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

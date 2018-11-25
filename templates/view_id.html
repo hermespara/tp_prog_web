@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+    {% block content %}
+    <br>
+    <br>
+    <br>
+    <div class="gene_id" style="overflow: auto; max-height: 80vh">
+                <div class="table-responsive">
+                    <table class="table" id="genes">
+                      <thead>
+
+                      {% if colnames %}
+
+                      <tr>
+                      {% for name in colnames%}
+                        <th scope="col"> {{name}} </th>
+                        {% endfor %}
+                      </tr>
+
+                    </thead>
+                      {% for row in gene_id %}
+                      <tr>
+                        <td> <a href={{url_for("view", id = row[0])}}> {{row[0]}} </td>
+                          {% for i in range(1, row |length) %}
+                          <td> {{row[i]}} </td>
+                          {% endfor %}
+                      </tr>
+                      {% endfor %}
+                      {% endif %}
+                    </table>
+
+                    <p> Transcript information </p>
+                    <table class="table" id="transcript">
+                      <thead>
+
+                      {% if colnames_transcrit %}
+
+                      <tr>
+                      {% for name in colnames_transcrit%}
+                        <th scope="col"> {{name}} </th>
+                        {% endfor %}
+                      </tr>
+
+                    </thead>
+                      {% for transcript in transcrit_info %}
+                      <tr>
+                          {% for i in range(0, transcript |length) %}
+                          <td> {{transcript[i]}} </td>
+                          {% endfor %}
+                      </tr>
+                      {% endfor %}
+                      {% endif %}
+                    </table>
+                    <a href = "/">Go back to home page</a>
+                    {% endblock %}
