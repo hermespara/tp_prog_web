@@ -141,7 +141,11 @@ def api_genes():
     for row in genes_api:
         genes_dict = [dict(zip([c[0] for c in genes_api.description], row))]
         genes_list.append(genes_dict)
-    genes_out = jsonify(genes_list)
+    new_gene_dict = {}
+    new_gene_dict["items"] = genes_dict
+    new_gene_dict["first"] = offset
+    new_gene_dict["last"] = len(genes_dict)
+    genes_out = jsonify(new_gene_dict)
     return genes_out
 
 
