@@ -138,15 +138,113 @@ def api_genes():
         """,[offset])
 
     genes_list = []
+    gene_dict = {}
     for row in genes_api:
         genes_dict = [dict(zip([c[0] for c in genes_api.description], row))]
         genes_list.append(genes_dict)
     new_gene_dict = {}
-    new_gene_dict["items"] = genes_dict
-    new_gene_dict["first"] = offset
-    new_gene_dict["last"] = len(genes_dict)
+    new_gene_dict["items"] = genes_list
+    new_gene_dict["first"] = offset + 1
+    new_gene_dict["last"] = len(genes_list)
+    new_gene_dict["next"] = url_for("api_genes",_external=True) + "?offset" + str(offset + 100)
+    new_gene_dict["prev"] = url_for("api_genes",_external=True) + "?offset=" + str(offset)
     genes_out = jsonify(new_gene_dict)
     return genes_out
+
+
+def validate_json(data_json):
+
+    obligatory_fields=["Ensembl_Gene_ID","Chromosome_Name","Gene_Start","Gene_End"]
+    optionnal_fields=["Band","Strand","Associated_Gene_Name"]
+    print(data_json.keys())
+    # Check if data is a dict format.
+    if isinstance(data_json,dict):
+        # check if the fields of input data are instance of the datatable.
+        for key in data_json.keys():
+            print(key)
+            if key not in obligatory_fields + optionnal_fields:
+                msg = key + " is not an instance of this datatable. "
+                out = jsonify({"error": msg})
+                out.status_code = 403
+                return out
+
+        for nedded_field in obligatory_fields:
+            if nedded_field not in data_json.keys():
+                    msg = nedded_field + " is nedded."
+                    out = jsonify({"error": msg})
+                    out.status_code = 403
+                    return out
+
+        for not_nedded_field in optionnal_fields:
+            if not_nedded_field not in data_json.keys():
+                data_json[not_nedded_field] = None
+
+
+        ID = data_json["Ensembl_Gene_ID"]
+        chr_name = data_json["Chromosome_Name"]
+        gene_start = data_json["Gene_Start"]
+        gene_end = data_json["Gene_End"]
+        band = data_json["Band"]
+        strand = data_json["Strand"]
+        ass_gene_name = data_json["Associated_Gene_Name"]
+
+        if not isinstance(ID, str):
+            msg = "Ensembl_Gene_ID should be a string"
+            out = jsonify({"Type error": msg})
+            out.status_code = 403
+            return out
+        elif not isinstance(chr_name, str):
+            msg = "Chromosome_Name should be a string"
+            out = jsonify({"Type error": msg})
+            out.status_code = 403
+            return out
+        elif not isinstance(band, str) and band != None:
+            msg = "Band should be a string"
+            out = jsonify({"Type error": msg})
+            out.status_code = 403
+            return out
+
+        elif not isinstance(ass_gene_name, str) and ass_gene_name != None:
+            msg = "Associated_Gene_Name should be a string"
+            out = jsonify({"Type error": msg})
+            out.status_code = 403
+            return out
+
+        elif not isinstance(gene_start, int):
+            msg = "Gene_Start should be an integer"
+            out = jsonify({"Type error": msg})
+            out.status_code = 403
+            return out
+        elif not isinstance(gene_end, int):
+            msg = "Gene_End should be an integer"
+            out = jsonify({"Type error": msg})
+            out.status_code = 403
+            return out
+        elif gene_start > gene_end:
+            msg = "Gene_Start cannot be higher than Gene_End"
+            out = jsonify({"Type Error": msg})
+            out.status_code = 416
+            return out
+        elif not isinstance(strand, int) and  strand != None and strand not in [-1,1]:
+            msg = "Strand should be an integer : -1 for complementary strand and 1 for matrice brand"
+            out = jsonify({"Type Error": msg})
+            out.status_code = 403
+            return out
+
+
+
+
+
+        return jsonify(data_json)
+
+
+
+@app.route("/api/Genes/", methods = ['POST'])
+def api_post_gene():
+    json_post = request.get_json()
+    #print(json_post.keys())
+    #validate_json(json_post)
+    return validate_json(json_post)#str(json_post)
 
 
 
