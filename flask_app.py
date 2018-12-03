@@ -114,8 +114,10 @@ def api_gene_id(id):
             d = dict(zip(colnames, res))
             d["href"] = url_for('api_gene_id', id=d["Ensembl_Gene_ID"], _external = True)
             transcript = c.execute("SELECT Ensembl_Transcript_ID, Transcript_Start, Transcript_End FROM Transcripts WHERE Ensembl_Gene_ID =?", [id])
-            for a in transcript:
-                d["transcripts"] = [dict(zip([c[0] for c in transcript.description], a))]
+            tr_list = []
+            for tr in transcript:
+                tr_list.append(dict(zip([c[0] for c in transcript.description],tr)))
+            d["transcripts"] = tr_list
             out = jsonify(d)
         else:
             d["error"] = "Ce gène n'existe pas"
@@ -311,19 +313,64 @@ def api_post_gene():
             msg = url_for('api_gene_id', id=i["Ensembl_Gene_ID"], _external = True)
             url.append(msg)
             out = jsonify({"url_created": msg})
-            #print(validate_json(i).status_code)
-            #return out
-            #return jsonify({"url": url})
+            out.status_code = 201
         else:
             msg, status_code = validate_json(i)
-            #iop = jsonify(i)
-            #m = validate_json(i)
-            #mess = jsonify({"prob": m})
-            #return iop, m
             out = jsonify({"error": msg + " pour le gene " + str(i)})
+            out.status_code = status_code
             return out
 
     return jsonify({"url": url}) #validate_json(json_post)#str(json_post)
+
+def update_gene_api(data_dict, id):
+    db = connect_to_db()
+    db.execute("""UPDATE Genes
+SET Band = ?, Chromosome_Name = ?, Strand  = ?, Gene_Start = ?, Gene_End = ?, Associated_Gene_Name = ?
+WHERE Ensembl_Gene_ID = ?""",[data_dict["Band"], data_dict["Chromosome_Name"], data_dict["Strand"], data_dict["Gene_Start"], data_dict["Gene_End"],data_dict["Associated_Gene_Name"],id])
+    db.commit()
+
+@app.route("/api/Genes/<id>", methods = ['PUT'])
+def put_api_gene(id):
+    json_put = request.get_json()
+    json_put = [json_put]
+    for i in json_put:
+        i_id = i["Ensembl_Gene_ID"]
+        if i_id != id:
+            msg = "L'url " + id + " correspond pas à votre Ensembl_Gene_ID " + i_id
+            out = jsonify({"error": msg})
+            out.status_code = 400
+            return out
+        else:
+            if validate_json(i) == True:
+                db = connect_to_db()
+                c = db.cursor()
+                c.execute("SELECT * FROM Genes WHERE Ensembl_Gene_ID =?", [id])
+                res = c.fetchone()
+                print(res)
+                if res:
+                    db.close()
+                    update_gene_api(i, i_id)
+                    msg = i["Ensembl_Gene_ID"] + " gene is updated to " + url_for('api_gene_id', id = i["Ensembl_Gene_ID"], _external = True)
+                    out = jsonify({"updated": msg})
+                    out.status_code = 200
+                else:
+                    db.close()
+                    create_a_gene(i)
+                    msg = url_for('api_gene_id', id=i["Ensembl_Gene_ID"], _external = True)
+                    out = jsonify({"Gene_created": msg})
+                    out.status_code = 201
+
+            else:
+                msg, status_code = validate_json(i)
+                out = jsonify({"error": msg + " pour le gene " + str(i)})
+                out.status_code = status_code
+                return out
+
+
+            return out
+
+
+
 
 
 
