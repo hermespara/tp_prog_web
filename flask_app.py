@@ -92,14 +92,57 @@ def new():
     else:
         return render_template('new_genes.html')
 
+##################################################
 #### API  = Application Programming Interface ####
+##################################################
+####     Prog Web pour la bioinformatique     ####
+##################################################
+####            Hermes Paraqindes             ####
+##################################################
+####            What it does :
+####      GET method : /api/Gene/<id>         ####
+#### It allows to represent the detailed information about the gene <id>
+##################################################
+####     DELETE method : /api/Genes/<id>      ####
+#### It allows to delete the gene <id>
+##################################################
+#### These two methods are implemented in hte same function.
+##################################################
+##################################################
+####       GET method : /api/Genes/           ####
+##################################################
+#### It shows a detailed information of top 100 genes ordered by gene ID
+#### The user can use an offset to skip X genes
+##################################################
+####       POST method : /api/Genes/          ####
+##################################################
+#### It accepts a detailed information of one ar multiple genes.
+#### Checks all the fields if they are in the needed format
+#### It enters the gene in database and returns the url
+##################################################
+####       PUT method : /api/Genes/<id>       ####
+##################################################
+#### Accepts the same information as the POST method
+#### If the gene exists, then it updates the new information filled
+#### Else it creates a new gene
+
+
 
 def connect_to_db():
+    """This fonction allows to connect to the DATABASE.
+    """
     db = sqlite3.connect(DATABASE)
     return db
 
 @app.route("/api/Genes/<id>", methods = ['GET', 'DELETE'])
 def api_gene_id(id):
+    """This function check the methods used for /api/Genes/<id>. IN: gene id.
+    If the method used is GET then a detailed information of the Gene is returned
+    An extra information with the url of the gene is filled and all the transcripts
+    If the method used id DELETE then the gene <id> will be delted.
+    It will return the message that the gene <id> is deleted.
+    In both methods, if the gene doesn't exist, then a message error is returned with 404 code
+    """
     #db = sqlite3.connect(DATABASE)
     db = connect_to_db()
     c = db.cursor()
@@ -109,22 +152,27 @@ def api_gene_id(id):
         c.execute("SELECT * FROM Genes WHERE Ensembl_Gene_ID =?", [id])
         res = c.fetchone()
         if res:
+            # dictionnary with key the column and values the information
             for i in c.description:
                 colnames.append(i[0])
             d = dict(zip(colnames, res))
+            # adding the url
             d["href"] = url_for('api_gene_id', id=d["Ensembl_Gene_ID"], _external = True)
             transcript = c.execute("SELECT Ensembl_Transcript_ID, Transcript_Start, Transcript_End FROM Transcripts WHERE Ensembl_Gene_ID =?", [id])
             tr_list = []
             for tr in transcript:
                 tr_list.append(dict(zip([c[0] for c in transcript.description],tr)))
+            # adding the transcripts information
             d["transcripts"] = tr_list
             out = jsonify(d)
         else:
+            #return an error
             d["error"] = "Ce gène n'existe pas"
             out = jsonify(d)
             out.status_code=404
         connect_to_db().close()
     if request.method == 'DELETE':
+        # dekete the gene if the gene exists. else return an error message
         c.execute("SELECT * FROM Genes WHERE Ensembl_Gene_ID =?", [id])
         res = c.fetchone()
         if res:
@@ -142,7 +190,12 @@ def api_gene_id(id):
 
 @app.route("/api/Genes/", methods = ['GET'])
 def api_genes():
-    print("hello")
+    """This function uses the GET method for the top 100 genes ordered by Ensembl_Gene_ID.
+    It allows to choose an offset(integer) and skin X rows (genes). By default the offset = 0.
+    It returns a detailed information about the genes without the transcripts information.
+    The gene list is in Items. An URL with next or previous 100 genes is filled.
+    """
+    # get the offset value and check if is an integer
     offset=request.args.get("offset")
     if not offset:
         offset = 0
@@ -161,23 +214,28 @@ def api_genes():
         """,[offset])
 
     genes_list = []
-    #gene_dict = {}
+    # create a list of dictionnaries with all the genes
     for row in genes_api:
         genes_dict = dict(zip([c[0] for c in genes_api.description], row))
         genes_dict["href"] = url_for("api_gene_id", id=row[0], _external = True)
         genes_list.append(genes_dict)
     new_gene_dict = {}
+    # create a new dictionnary with the genes, next, previous, first, and last
     new_gene_dict["items"] = genes_list
     new_gene_dict["first"] = offset + 1
     new_gene_dict["last"] = len(genes_list) + offset
     new_gene_dict["next"] = url_for("api_genes",_external=True) + "?offset=" + str(offset + 100)
     new_gene_dict["prev"] = url_for("api_genes",_external=True) + "?offset=" + str(offset)
     genes_out = jsonify(new_gene_dict)
+    # return the new dictionnary
     return genes_out
 
 
 def validate_json(data_json):
-
+    """This function, given a data parameter, it will check if the data has a good format.
+    If not, an error message with the appropriate status code will be returned.
+    """
+    # two lists with obligatory_fields and optionnal_fields for the Gene
     obligatory_fields=["Ensembl_Gene_ID","Chromosome_Name","Gene_Start","Gene_End"]
     optionnal_fields=["Band","Strand","Associated_Gene_Name"]
     # Check if data is a dict format.
@@ -189,19 +247,19 @@ def validate_json(data_json):
                 #out = jsonify({"error": msg})
                 status_code = 403
                 return msg, status_code
-
+        # check if all the obligatory_fields are filles
         for nedded_field in obligatory_fields:
             if nedded_field not in data_json.keys():
                     msg = nedded_field + " is nedded."
                     #out = jsonify({"error": msg})
                     status_code = 403
                     return msg, status_code
-
+        # if an optionnal_fields is not completed, it will add a NONE value to it.
         for not_nedded_field in optionnal_fields:
             if not_nedded_field not in data_json.keys():
                 data_json[not_nedded_field] = None
 
-
+        # Get the information of the data
         ID = data_json["Ensembl_Gene_ID"]
         chr_name = data_json["Chromosome_Name"]
         gene_start = data_json["Gene_Start"]
@@ -210,43 +268,50 @@ def validate_json(data_json):
         strand = data_json["Strand"]
         ass_gene_name = data_json["Associated_Gene_Name"]
 
+        # check is Ensembl_Gene_ID is a string
         if not isinstance(ID, str):
             msg = "Ensembl_Gene_ID should be a string"
             #out = jsonify({"Type error": msg})
             status_code = 403
             #return msg, status_code
+        # checks if Chromosome_Name is a string
         elif not isinstance(chr_name, str):
             msg = "Chromosome_Name should be a string"
             #out = jsonify({"Type error": msg})
             status_code = 403
             #return msg, status_code
+        # check is Band is a string
         elif not isinstance(band, str) and band != None:
             msg = "Band should be a string"
             #out = jsonify({"Type error": msg})
             status_code = 403
             #return msg, status_code
-
+        # checks if Associated_Gene_Name is a string
         elif not isinstance(ass_gene_name, str) and ass_gene_name != None:
             msg = "Associated_Gene_Name should be a string"
             #out = jsonify({"Type error": msg})
             status_code = 403
             #return msg, status_code
 
+        # checks if gene start is an integer
         elif not isinstance(gene_start, int):
             msg = "Gene_Start should be an integer"
             #out = jsonify({"Type error": msg})
             status_code = 403
             #return out, status_code
+        # checks if Gene_End is an integer
         elif not isinstance(gene_end, int):
             msg = "Gene_End should be an integer"
             #out = jsonify({"Type error": msg})
             status_code = 403
             #return out, status_code
+        # Checks if Gene_End is higher than Gene_Start
         elif gene_start > gene_end:
             msg = "Gene_Start cannot be higher than Gene_End"
             #out = jsonify({"Type Error": msg})
             status_code = 416
             #return msg, status_code
+        # Checks if the Strand is an integer and equal to -1 or 1
         elif not isinstance(strand, int) and  strand != None and strand not in [-1,1]:
             msg = "Strand should be an integer : -1 for complementary strand and 1 for matrice brand"
             #out = jsonify({"Type Error": msg})
@@ -269,11 +334,15 @@ def validate_json(data_json):
             #return out
             #msg = url_for('api_gene_id', id=i["Ensembl_Gene_ID"], _external = True)
             #status_code
+
+            #return TRUE if the data is good
             return True
+        # return the error message and status_code if the data is not good
         return msg, status_code
 
 
 def create_a_gene(data_dict):
+    # given a well formated data, it creates a new gene in the database
     db = connect_to_db()
     db.execute("""INSERT INTO Genes (Ensembl_Gene_ID, Chromosome_Name, Band, Strand, Gene_Start, Gene_End,Associated_Gene_Name)
         VALUES (?,?,?,?,?,?,?)""",
@@ -283,8 +352,15 @@ def create_a_gene(data_dict):
 
 @app.route("/api/Genes/", methods = ['POST'])
 def api_post_gene():
+    """This function gets the data information with POST method. Checks if the data is well formated.
+    If yes it will return the url for all the genes created. If not it will retrun the error message.
+    It can accept a gene or a list of genes.
+    """
+    # get the json format of data
     json_post = request.get_json()
+    # turned in a list if there are multiple genes given
     json_post = [json_post]
+    # this was for testing. If no json format given, it allowed me to check if the code function.
     if not json_post:
         json_post = [{
           "Associated_Gene_Name": "TSPAN6",
@@ -308,21 +384,28 @@ def api_post_gene():
     #validate_json(json_post)
     url = []
     for i in json_post:
+        # for each gene given, checks if is well formated and returns the url of the new gene.
         if validate_json(i) == True:
+            # create the new gene
             create_a_gene(i)
             msg = url_for('api_gene_id', id=i["Ensembl_Gene_ID"], _external = True)
             url.append(msg)
             out = jsonify({"url_created": msg})
             out.status_code = 201
         else:
+            # return the error message
             msg, status_code = validate_json(i)
             out = jsonify({"error": msg + " pour le gene " + str(i)})
             out.status_code = status_code
             return out
-
+    # returns the url for the new genes created
     return jsonify({"url": url}) #validate_json(json_post)#str(json_post)
 
+
 def update_gene_api(data_dict, id):
+    """This function, given a well formated data and the gene id, it allows to update an existed gene with
+    the new informatio
+    """
     db = connect_to_db()
     db.execute("""UPDATE Genes
 SET Band = ?, Chromosome_Name = ?, Strand  = ?, Gene_Start = ?, Gene_End = ?, Associated_Gene_Name = ?
@@ -331,9 +414,16 @@ WHERE Ensembl_Gene_ID = ?""",[data_dict["Band"], data_dict["Chromosome_Name"], d
 
 @app.route("/api/Genes/<id>", methods = ['PUT'])
 def put_api_gene(id):
+    """This funciton, given a gene id, allows to update an existed gene with the new information or to
+    create a new one.
+    """
+    # get the data
     json_put = request.get_json()
+    # turned in a list
     json_put = [json_put]
+    #if multiple genes given
     for i in json_put:
+        # the id in the json data should be the same with the id given in the url
         i_id = i["Ensembl_Gene_ID"]
         if i_id != id:
             msg = "L'url " + id + " correspond pas à votre Ensembl_Gene_ID " + i_id
@@ -341,12 +431,14 @@ def put_api_gene(id):
             out.status_code = 400
             return out
         else:
+            # checks if the data is well formated
             if validate_json(i) == True:
                 db = connect_to_db()
                 c = db.cursor()
                 c.execute("SELECT * FROM Genes WHERE Ensembl_Gene_ID =?", [id])
                 res = c.fetchone()
-                print(res)
+                # if the gene exist then udpate the gene with the new information
+                # return the updated message
                 if res:
                     db.close()
                     update_gene_api(i, i_id)
@@ -354,6 +446,7 @@ def put_api_gene(id):
                     out = jsonify({"updated": msg})
                     out.status_code = 200
                 else:
+                    # else, create the new gene and return the url for the new gene
                     db.close()
                     create_a_gene(i)
                     msg = url_for('api_gene_id', id=i["Ensembl_Gene_ID"], _external = True)
@@ -361,6 +454,7 @@ def put_api_gene(id):
                     out.status_code = 201
 
             else:
+                # if data is not well formated, return the error message
                 msg, status_code = validate_json(i)
                 out = jsonify({"error": msg + " pour le gene " + str(i)})
                 out.status_code = status_code
